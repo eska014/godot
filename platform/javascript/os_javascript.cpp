@@ -948,16 +948,19 @@ Error OS_JavaScript::initialize(const VideoMode &p_desired, int p_video_driver, 
 	EM_ASM({
 		FS.mkdir('/tmp/drop');
 		var drop_files = cwrap('osjs_drop_files');
+		canvas.addEventListener('dragenter', ev => { ev.preventDefault(); });
+		canvas.addEventListener('dragover', ev => { ev.preventDefault(); });
 		canvas.addEventListener('drop', ev => {
 			ev.preventDefault();
-			let transfer = ev.dataTransfer;
+			let fileNames = Array();
 			let reads = Array();
-			for (var i = 0; i < files.length; i++) {
+			for (var i = 0; i < ev.dataTransfer.files.length; i++) {
+				fileNames.push(ev.dataTransfer.files.item(i).name);
 				reads.push(new Response(files.item(i)).arrayBuffer());
 			}
 			Promise.all(reads).then(values => {
 				for (var i = 0; i < values.length; i++) {
-					FS.writeFile('/tmp/drop/' + files.item(i).name, values[i]);
+					FS.writeFile('/tmp/drop/' + fileNames[i], values[i]);
 				}
 				drop_files();
 			});
