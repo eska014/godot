@@ -46,22 +46,14 @@ def configure(env):
     em_path = os.environ["EMSCRIPTEN_ROOT"]
 
     env['ENV']['PATH'] = em_path + ":" + env['ENV']['PATH']
-    env['CC'] = em_path + '/emcc'
-    env['CXX'] = em_path + '/emcc'
-    #env['AR'] = em_path+"/emar"
-    env['AR'] = em_path + "/emcc"
-    env['ARFLAGS'] = "-o"
+    env['CC']     = em_path + '/emcc'
+    env['CXX']    = em_path + '/em++'
+    env['LINK']   = em_path + '/emcc'
+    env['AR']     = em_path + '/emar'
+    env['RANLIB'] = em_path + '/emranlib'
 
-#	env['RANLIB'] = em_path+"/emranlib"
-    env['RANLIB'] = em_path + "/emcc"
     env['OBJSUFFIX'] = '.bc'
-    env['LIBSUFFIX'] = '.bc'
-    env['CCCOM'] = "$CC -o $TARGET $CFLAGS $CCFLAGS $_CCCOMCOM $SOURCES"
-    env['CXXCOM'] = "$CC -o $TARGET $CFLAGS $CCFLAGS $_CCCOMCOM $SOURCES"
-
-#	env.Append(LIBS=['c','m','stdc++','log','GLESv1_CM','GLESv2'])
-
-#	env["LINKFLAGS"]= string.split(" -g --sysroot="+ld_sysroot+" -Wl,--no-undefined -Wl,-z,noexecstack ")
+    env['LIBSUFFIX'] = '.a'
 
     if (env["target"] == "release"):
         env.Append(CCFLAGS=['-O2'])
@@ -82,7 +74,6 @@ def configure(env):
     env.Append(CPPFLAGS=['-DGLES2_ENABLED'])
     env.Append(CPPFLAGS=['-DGLES_NO_CLIENT_ARRAYS'])
     env.Append(CPPFLAGS=['-s', 'FULL_ES2=1'])
-#	env.Append(CPPFLAGS=['-DANDROID_ENABLED', '-DUNIX_ENABLED','-DMPC_FIXED_POINT'])
 
     if env['wasm'] == 'yes':
         env.Append(LINKFLAGS=['-s', 'BINARYEN=1'])
@@ -104,12 +95,8 @@ def configure(env):
     env.Append(LINKFLAGS=['-O2'])
     # env.Append(LINKFLAGS=['-g4'])
 
-    # print "CCCOM is:", env.subst('$CCCOM')
-    # print "P: ", env['p'], " Platofrm: ", env['platform']
-
     import methods
 
     env.Append(BUILDERS={'GLSL120': env.Builder(action=methods.build_legacygl_headers, suffix='glsl.h', src_suffix='.glsl')})
     env.Append(BUILDERS={'GLSL': env.Builder(action=methods.build_glsl_headers, suffix='glsl.h', src_suffix='.glsl')})
     env.Append(BUILDERS={'GLSL120GLES': env.Builder(action=methods.build_gles2_headers, suffix='glsl.h', src_suffix='.glsl')})
-    #env.Append( BUILDERS = { 'HLSL9' : env.Builder(action = methods.build_hlsl_dx9_headers, suffix = 'hlsl.h',src_suffix = '.hlsl') } )
