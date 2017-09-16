@@ -160,8 +160,7 @@
 		 * ============ */
 
 		#output-panel {
-			display: none;
-			max-width: 700px;
+			max-width: 600px;
 			font-size: small;
 			margin: 6px auto 0;
 			padding: 0 4px 4px;
@@ -184,7 +183,7 @@
 
 		#output-scroll {
 			line-height: 1;
-			height: 12em;
+			height: 8em;
 			overflow-y: scroll;
 			white-space: pre-wrap;
 			font-size: small;
@@ -195,7 +194,7 @@ $GODOT_HEAD_INCLUDE
 </head>
 <body>
 	<div id="container">
-		<canvas id="canvas" oncontextmenu="event.preventDefault();" width="640" height="480">
+		<canvas id="canvas" oncontextmenu="event.preventDefault();" width="800" height="480">
 			HTML5 canvas appears to be unsupported in the current browser.<br />
 			Please try updating or use a different browser.
 		</canvas>
@@ -216,10 +215,13 @@ $GODOT_HEAD_INCLUDE
 	</div>
 	<div id="output-panel" class="godot">
 		<div id="output-header">
-			Output:
-			<button id='output-clear' class='godot' type='button' autocomplete='off'>Clear</button>
+			Benchmark (all times in msec):
 		</div>
 		<div id="output-container"><div id="output-scroll"></div></div>
+	</div>
+	<div style='margin: 0 auto; max-width: 700px; text-align: left; color:#ddd;'>
+		<p><em>Interactive</em> is defined as the end of the first frame faster than 55 frames per second.</p>
+		<p><em>CPU time</em> excludes dead time caused by <code>requestAnimationFrame</code>.</p>
 	</div>
 
 	<script type="text/javascript" src="$GODOT_BASENAME.js"></script>
@@ -230,8 +232,6 @@ $GODOT_HEAD_INCLUDE
 		(function() {
 
 			const BASENAME = '$GODOT_BASENAME';
-			const MEMORY_SIZE = $GODOT_TOTAL_MEMORY;
-			const DEBUG_ENABLED = $GODOT_DEBUG_ENABLED;
 			const INDETERMINATE_STATUS_STEP_MS = 100;
 
 			var container = document.getElementById('container');
@@ -247,7 +247,6 @@ $GODOT_HEAD_INCLUDE
 
 			setStatusMode('indeterminate');
 			game.setCanvas(canvas);
-			game.setAsmjsMemorySize(MEMORY_SIZE);
 
 			function setStatusMode(mode) {
 
@@ -318,65 +317,42 @@ $GODOT_HEAD_INCLUDE
 				}
 			});
 
-			if (DEBUG_ENABLED) {
-				var outputRoot = document.getElementById("output-panel");
+			Benchmark.print = function() {
+
+				var result = idPrefix => this[idPrefix + '-Finish'] - this[idPrefix + '-Start'];
+				this.timeWaitingForAssets = Math.max(0, this['[godot.pck]-load-Finish'] - this['game-instantiated']);
+				this.emscriptenRuntimeInstantiation = Benchmark['game-instantiated'] - Benchmark['engine-loaded'] - result('wasm-instantiate');
+				var cpuTime = this['game-instantiated'] - this['engine-loaded'];
+				cpuTime += this['main-loop-ready'] - this['game-loaded'];
+				this.loops.forEach(duration => {
+					cpuTime += duration.cpuTime;
+				});
+
+				text =  "WebAssembly download:      " + result('[godot.wasm]-load')
+					+ "\nWebAssembly instantiation: " + result('wasm-instantiate')
+					+ "\nEngine initialization:     " + ((this['main-loop-ready'] - this['game-loaded']) + this.loops[0].cpuTime)
+					+ "\n"
+					+ "\nFrom download finish to first frame: " + (this['first-frame'] - this['engine-loaded'] - this.timeWaitingForAssets)
+					+ "\nFrom download finish to interactive: " + (this['game-interactive'] - this['engine-loaded'] - this.timeWaitingForAssets)
+					+ "\nCPU time to interactive:             " + cpuTime
+				;
+
 				var outputScroll = document.getElementById("output-scroll");
-				var OUTPUT_MSG_COUNT_MAX = 400;
 
-				document.getElementById('output-clear').addEventListener('click', () => {
-					while (outputScroll.firstChild) {
-						outputScroll.firstChild.remove();
-					}
-				});
-
-				outputRoot.style.display = 'block';
-
-				function print(text) {
-					if (arguments.length > 1) {
-						text = Array.prototype.slice.call(arguments).join(" ");
-					}
-					if (text.length <= 0) return;
-					while (outputScroll.childElementCount >= OUTPUT_MSG_COUNT_MAX) {
-						outputScroll.firstChild.remove();
-					}
-					var msg = document.createElement("div");
-					if (String.prototype.trim.call(text).startsWith("**ERROR**")) {
-						msg.style.color = "#d44";
-					} else if (String.prototype.trim.call(text).startsWith("**WARNING**")) {
-						msg.style.color = "#ccc000";
-					} else if (String.prototype.trim.call(text).startsWith("**SCRIPT ERROR**")) {
-						msg.style.color = "#c6d";
-					}
-					msg.textContent = text;
-					var scrollToBottom = outputScroll.scrollHeight - (outputScroll.clientHeight + outputScroll.scrollTop) < 10;
-					outputScroll.appendChild(msg);
-					if (scrollToBottom) {
-						outputScroll.scrollTop = outputScroll.scrollHeight;
-					}
-				};
-
-				function printError(text) {
-					print('**ERROR**' + ":", text);
+				var msg = document.createElement("div");
+				msg.textContent = text;
+				var scrollToBottom = outputScroll.scrollHeight - (outputScroll.clientHeight + outputScroll.scrollTop) < 10;
+				outputScroll.appendChild(msg);
+				if (scrollToBottom) {
+					outputScroll.scrollTop = outputScroll.scrollHeight;
 				}
-
-				game.setStdoutFunc(text => {
-					print(text);
-					console.log(text);
-				});
-
-				game.setStderrFunc(text => {
-					printError(text);
-					console.warn(text);
-				});
-			}
+			};
 
 			game.start(BASENAME + '.pck').then(() => {
 				setStatusMode('hidden');
 				initializing = false;
 			}, err => {
-				if (DEBUG_ENABLED)
-					printError(err.message);
-				setStatusNotice(err.message);
+				setStatusNotice(err.message || "Error during start-up");
 				setStatusMode('notice');
 				initializing = false;
 			});

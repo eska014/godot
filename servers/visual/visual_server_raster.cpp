@@ -38,6 +38,10 @@
 #include "visual_server_global.h"
 #include "visual_server_scene.h"
 
+#ifdef JAVASCRIPT_ENABLED
+#include <emscripten.h>
+#endif
+
 // careful, these may run in different threads than the visual server
 
 int VisualServerRaster::changes = 0;
@@ -111,6 +115,13 @@ void VisualServerRaster::draw() {
 	VSG::scene->render_probes();
 	//_draw_cursors_and_margins();
 	VSG::rasterizer->end_frame();
+#ifdef JAVASCRIPT_ENABLED
+	EM_ASM(
+		if (!Benchmark['first-frame']) {
+			Benchmark['first-frame'] = performance.now();
+		}
+	);
+#endif
 	//draw_extra_frame=VS:rasterizer->needs_to_draw_next_frame();
 
 	while (frame_drawn_callbacks.front()) {

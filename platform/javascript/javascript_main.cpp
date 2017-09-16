@@ -36,7 +36,25 @@ OS_JavaScript *os = NULL;
 
 static void main_loop() {
 
+	EM_ASM(
+		if (!Benchmark['game-interactive']) {
+			Benchmark.loops[Benchmark.loops.length - 1].cpuTime = performance.now();
+		}
+	);
 	os->main_loop_iterate();
+	EM_ASM(
+		if (!Benchmark['game-interactive']) {
+			var currentLoop = Benchmark.loops[Benchmark.loops.length - 1];
+			currentLoop.cpuTime = performance.now() - currentLoop.cpuTime;
+			currentLoop.frameTime = performance.now() - currentLoop.frameTime;
+			if (currentLoop.frameTime < 1000/55) {
+				Benchmark['game-interactive'] = performance.now();
+				Benchmark.print();
+			} else {
+				Benchmark.loops.push({ frameTime: performance.now() });
+			}
+		}
+	);
 }
 
 extern "C" void main_after_fs_sync(char *p_idbfs_err) {
@@ -51,6 +69,10 @@ extern "C" void main_after_fs_sync(char *p_idbfs_err) {
 	Main::start();
 	os->main_loop_begin();
 	emscripten_set_main_loop(main_loop, 0, false);
+	EM_ASM(
+		Benchmark['main-loop-ready'] = performance.now();
+		Benchmark.loops = [{ frameTime: performance.now() }];
+	);
 }
 
 int main(int argc, char *argv[]) {

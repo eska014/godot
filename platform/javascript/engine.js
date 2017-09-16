@@ -60,7 +60,9 @@
 
 				gameInitPromise = Engine.initEngine().then(
 					instantiate.bind(this)
-				);
+				).then(function() {
+					Benchmark['game-instantiated'] = performance.now();
+				});
 				var gameLoadPromise = loadPromise(mainPack, pckProgressTracker).then(function(xhr) { return xhr.response; });
 				gameInitPromise = Promise.all([gameLoadPromise, gameInitPromise]).then(function(values) {
 					// resolve with pck
@@ -75,6 +77,7 @@
 
 		function instantiate(initializer) {
 
+			Benchmark['engine-loaded'] = performance.now();
 			var rtenvOpts = {
 				noInitialRun: true,
 				thisProgram: getBaseName(basePath),
@@ -86,7 +89,9 @@
 				rtenvOpts.printErr = stderr;
 			if (typeof WebAssembly === 'object' && initializer instanceof ArrayBuffer) {
 				rtenvOpts.instantiateWasm = function(imports, onSuccess) {
+					Benchmark['wasm-instantiate-Start'] = performance.now();
 					WebAssembly.instantiate(initializer, imports).then(function(result) {
+						Benchmark['wasm-instantiate-Finish'] = performance.now();
 						onSuccess(result.instance);
 					});
 					return {};
@@ -108,10 +113,13 @@
 
 		this.start = function(mainPack) {
 
-			return this.initGame(mainPack).then(synchronousStart.bind(this));
+			var p = this.initGame(mainPack).then(synchronousStart.bind(this));
+			Benchmark['started-downloads'] = performance.now();
+			return p;
 		};
 
 		function synchronousStart(pckView) {
+			Benchmark['game-loaded'] = performance.now();
 			// TODO don't expect canvas when runninng as cli tool
 			if (canvas instanceof HTMLCanvasElement) {
 				this.rtenv.canvas = canvas;
@@ -309,6 +317,7 @@
 		['loadstart', 'progress', 'load', 'error', 'timeout', 'abort'].forEach(function(ev) {
 			xhr.addEventListener(ev, onXHREvent.bind(xhr, resolve, reject, file, tracker));
 		});
+		Benchmark['[' + file + ']-load-Start'] = performance.now();
 		xhr.send();
 	}
 
@@ -343,6 +352,7 @@
 				break;
 
 			case 'load':
+				Benchmark['[' + file + ']-load-Finish'] = performance.now();
 				tracker[file].final = true;
 				resolve(this);
 				break;
