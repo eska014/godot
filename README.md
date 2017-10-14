@@ -1,3 +1,62 @@
+This branch sets up Godot's default HTML5 export as a WASM benchmark.
+
+Simple changes can be made just modifying the `.html` file, so it might not be
+necessary to build the engine.
+
+A global JS variable `Benchmark` is available. Its properties contain various
+`window.performance.now()` timestamps. These are distinguished from other
+properties by using dashes `-` in their names.
+
+Timestamp property name        | Meaning
+-------------------------------|------------------------------------------------
+`[godot.wasm]-download-Start`  | WASM binary download started
+`[godot.wasm]-download-Finish` | WASM binary download finished
+`engine-loaded`                | Downloaded all files other than game assets
+`wasm-instantiate-Start`       | WASM instantiation started (primary overload)
+`wasm-instantiate-Finish`      | WASM instantiated (primary overload)
+`game-loaded`                  | Downloaded all files including game assets
+`main-loop-ready`              | Called `requestAnimationFrame` to start the main loop
+`first-frame`                  | Rendered first frame
+`game-interactive`             | Finished main loop iteration faster than 55 FPS
+
+Other properties are:
+
+ - `timeWaitingForAssets`, the amount of time the download of the game files
+   stalls progress. Often 0 due to its small size. Subtracted from relevant
+   printed Benchmark results.
+
+ - `emscriptenRuntimeInstantiation`, the amount of time spent instantiating the
+   Emscripten JavaScript runtime. Excludes WASM instantiation.
+
+ - `loops`, an array of frame timings. Each frame is an object containing a
+   `frameTime` property including idle time (`requestAnimationFrame`) and
+   `cpuTime` without such idle time.
+
+ - `print`, the function that prints the benchmark results to the page. Defined
+   in the HTML file.
+
+To build the engine for the HTML5 platform:
+
+ 1. Install SCons and a recent Emscripten version
+ 2. Define `EMSCRIPTEN_ROOT` environment variable
+ 3. Call `scons platform=javascript wasm=yes target=release` in the repo's root directory
+
+The skeleton for the HTML file used in builds is located at `/misc/dist/html/default.html`.
+Other HTML5 platform-related files are in `/platform/javascript/`.
+
+The `.pck` file of the exported game needs to be exported from a Godot Editor
+build based on the same commit as the HTML5 build.
+
+Detailed build instructions here: https://godot.readthedocs.io/en/latest/development/compiling/index.html
+
+asm.js export will not work on this branch as-is.
+
+The game project used for the benchmark is available here: https://github.com/eska014/godot-wasm-benchmark-project
+
+Following is the upstream README file.
+
+---
+
 [![Godot Engine logo](/logo.png)](https://godotengine.org)
 
 ## Godot Engine
