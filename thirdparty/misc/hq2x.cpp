@@ -45,7 +45,12 @@ _FORCE_INLINE_ static uint32_t ARGBtoAYUV(
  * Use this function for sharper images (good for cartoon style, used by DOSBOX)
  */
 
-_FORCE_INLINE_ static bool isDifferent(
+#ifdef JAVASCRIPT_ENABLED
+__attribute__((noinline))
+#else
+_FORCE_INLINE_
+#endif
+static bool isDifferent(
 	uint32_t color1,
 	uint32_t color2,
 	uint32_t trY,

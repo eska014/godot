@@ -29,6 +29,7 @@ def get_flags():
     return [
         ('tools', False),
         ('module_theora_enabled', False),
+        ('module_regex_enabled', False),
     ]
 
 
@@ -50,8 +51,8 @@ def configure(env):
     ## Build type
 
     if (env["target"] == "release"):
-        env.Append(CCFLAGS=['-O3'])
-        env.Append(LINKFLAGS=['-O3'])
+        env.Append(CCFLAGS=['-Oz'])
+        env.Append(LINKFLAGS=['-Oz'])
 
     elif (env["target"] == "release_debug"):
         env.Append(CCFLAGS=['-O2', '-DDEBUG_ENABLED'])
