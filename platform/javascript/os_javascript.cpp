@@ -396,6 +396,9 @@ static EM_BOOL _keyup_callback(int event_type, const EmscriptenKeyboardEvent *ke
 
 	ERR_FAIL_COND_V(event_type != EMSCRIPTEN_EVENT_KEYUP, false);
 
+	if (!is_canvas_focused() && !_input->is_key_pressed(dom2godot_scancode(key_event->keyCode))) {
+		return false;
+	}
 	Ref<InputEventKey> ev = _setup_key_event(key_event);
 	ev->set_pressed(false);
 	_input->parse_input_event(ev);
@@ -496,7 +499,7 @@ void OS_JavaScript::initialize(const VideoMode &p_desired, int p_video_driver, i
 	SET_EM_CALLBACK("#window", touchcancel, _touchpress_callback)
 	SET_EM_CALLBACK("#canvas", keydown, _keydown_callback)
 	SET_EM_CALLBACK("#canvas", keypress, _keypress_callback)
-	SET_EM_CALLBACK("#canvas", keyup, _keyup_callback)
+	SET_EM_CALLBACK("#window", keyup, _keyup_callback)
 	SET_EM_CALLBACK(NULL, resize, _browser_resize_callback)
 	SET_EM_CALLBACK(NULL, fullscreenchange, _fullscreen_change_callback)
 	SET_EM_CALLBACK_NODATA(gamepadconnected, joy_callback_func)
