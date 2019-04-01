@@ -112,7 +112,9 @@ def configure(env):
     env.Append(CPPDEFINES=['NO_THREADS'])
 
     # These flags help keep the file size down.
-    env.Append(CCFLAGS=['-fno-exceptions', '-fno-rtti'])
+    env.Append(CCFLAGS=['-fno-rtti'])
+    if not env['tools']:
+        env.Append(CCFLAGS=['-fno-exceptions'])
     # Don't use dynamic_cast, necessary with no-rtti.
     env.Append(CPPDEFINES=['NO_SAFE_CAST'])
 
