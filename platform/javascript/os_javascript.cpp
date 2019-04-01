@@ -945,6 +945,24 @@ Error OS_JavaScript::initialize(const VideoMode &p_desired, int p_video_driver, 
 		MainLoop::NOTIFICATION_WM_FOCUS_IN,
 		MainLoop::NOTIFICATION_WM_FOCUS_OUT
 	);
+	EM_ASM({
+		FS.mkdir('/tmp/drop');
+		var drop_files = cwrap('osjs_drop_files');
+		canvas.addEventListener('drop', ev => {
+			ev.preventDefault();
+			let transfer = ev.dataTransfer;
+			let reads = Array();
+			for (var i = 0; i < files.length; i++) {
+				reads.push(new Response(files.item(i)).arrayBuffer());
+			}
+			Promise.all(reads).then(values => {
+				for (var i = 0; i < values.length; i++) {
+					FS.writeFile('/tmp/drop/' + files.item(i).name, values[i]);
+				}
+				drop_files();
+			});
+		});
+	});
 	/* clang-format on */
 
 	visual_server->init();
@@ -1177,6 +1195,71 @@ String OS_JavaScript::get_user_data_dir() const {
 String OS_JavaScript::get_resource_dir() const {
 
 	return "/";
+}
+
+//EMSCRIPTEN_KEEPALIVE void osjs_create_drop_file(const uint8_t *p_path, const uint8_t *p_src, int p_length) {
+
+//	Error err;
+//	DirAccess *d = DirAccess::create(DirAccess::ACCESS_FILESYSTEM);
+//	ERR_FAIL_NULL(d);
+//	if (!d->exists("/tmp/drop")) {
+//		err = d->make_dir_recursive(path);
+//		if (result != OK) {
+//			memdelete(d);
+//			ERR_FAIL_COND(result != OK);
+//		}
+//	}
+//	memdelete(d);
+
+//	FileAccess *file = FileAccess::open(p_path, FileAccess::WRITE, &err);
+//	if (err) {
+//		if (file)
+//			memdelete(file);
+//		ERR_FAIL_COND(err != OK);
+//	}
+//	file->store_buffer(p_src, p_length);
+//	memdelete(file);
+//}
+
+EMSCRIPTEN_KEEPALIVE void osjs_drop_files() {
+
+	OS_JavaScript::get_singleton()->drop_files();
+}
+
+void OS_JavaScript::drop_files() {
+
+	DirAccess *d = DirAccess::create(DirAccess::ACCESS_FILESYSTEM);
+	Error err = d->change_dir("/tmp/drop");
+	if (err != OK) {
+		memdelete(d);
+		ERR_FAIL_COND(err != OK);
+	}
+
+	err = d->list_dir_begin();
+	if (err != OK) {
+		memdelete(d);
+		ERR_FAIL_COND(err != OK);
+	}
+
+	Vector<String> files;
+
+	String current = d->get_next();
+	while (current != String()) {
+		files.push_back(current);
+		current = d->get_next();
+	}
+	d->list_dir_end();
+
+	main_loop->drop_files(files);
+
+	err = d->erase_contents_recursive();
+	if (err != OK) {
+		memdelete(d);
+		ERR_FAIL_COND(err != OK);
+	}
+
+	memdelete(d);
+
 }
 
 OS::PowerState OS_JavaScript::get_power_state() {

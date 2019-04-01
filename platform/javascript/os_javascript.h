@@ -152,6 +152,8 @@ public:
 	virtual String get_resource_dir() const;
 	virtual String get_user_data_dir() const;
 
+	void drop_files();
+
 	virtual OS::PowerState get_power_state();
 	virtual int get_power_seconds_left();
 	virtual int get_power_percent_left();
