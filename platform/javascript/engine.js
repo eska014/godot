@@ -147,6 +147,13 @@
 			);
 		};
 
+		this.startEditor = function(basePath) {
+
+			return Promise.all([this.init(basePath), this.preloadFile(new ArrayBuffer(), '/project/project.godot')]).then(
+				Function.prototype.apply.bind(synchronousStart, this, ['--editor', '--path', '/project'])
+			);
+		};
+
 		function synchronousStart() {
 
 			if (canvas instanceof HTMLCanvasElement) {
